@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Tooling caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Env / secrets
+.env
+.env.*
+*.local
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Test artifacts (when the agent runs suites from here)
+test-results/
+playwright-report/
+allure-results/
+.coverage
+node_modules/
