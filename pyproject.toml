@@ -1,0 +1,42 @@
+[project]
+name = "aqa-agent"
+version = "0.2.0"
+description = "Cross-runtime AI agent (Claude Code + Codex) that turns a task description into test cases and executable tests in Python or TypeScript"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "initk.tech" }]
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pytest>=8.0",
+]
+
+# Configuration-only repository: nothing to build or install, the scripts are standalone.
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["evals/fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["aqa_lint", "build_personas"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+files = ["scripts", "tests", ".agents/skills/aqa-verify/scripts"]
+mypy_path = ["scripts", ".agents/skills/aqa-verify/scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts", ".agents/skills/aqa-verify/scripts"]

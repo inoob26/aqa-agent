@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: generate-blocked-by-draft
+context:
+  scaffold_script: fixture.sh

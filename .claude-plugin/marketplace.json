@@ -1,0 +1,14 @@
+{
+  "name": "aqa-agent",
+  "description": "The aqa test automation agent for Claude Code.",
+  "owner": {
+    "name": "initk.tech"
+  },
+  "plugins": [
+    {
+      "name": "aqa",
+      "description": "Test automation engineer: task description → reviewed test cases → executable tests (pytest / Playwright) with a mutation check.",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run pytest
+      - run: python3 scripts/build_personas.py --check
+      - name: Validate the plugin manifests
+        run: |
+          npm install --global @anthropic-ai/claude-code
+          claude plugin validate .
+          claude plugin validate .claude-plugin/plugin.json
+
+  # Behavioral evals call the model, so they are opt-in: set the repository variable
+  # RUN_EVALS=true and the secret ANTHROPIC_API_KEY. They run on pushes to main only.
+  evals:
+    if: github.event_name == 'push' && vars.RUN_EVALS == 'true'
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install --yes bubblewrap socat
+      - run: npm install --global @anthropic-ai/claude-code
+      - name: Run the eval suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude plugin eval . --trust-plugin --scaffold --ablation none --runs 1 \
+            --allow-tools Write Edit Bash --threshold 0.8 --max-cost-usd 20 \
+            --no-publish --json evals/results/ci.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: evals/results/
