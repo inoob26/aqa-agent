@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *aqa_lint.py *)",
+      "Bash(pytest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(uv run pytest *)",
+      "Bash(ruff check *)",
+      "Bash(mypy *)",
+      "Bash(npx playwright test *)",
+      "Bash(npx tsc --noEmit*)",
+      "Bash(npx eslint *)",
+      "Bash(git diff *)",
+      "Bash(git status *)",
+      "Bash(git worktree *)",
+      "Bash(gh issue view *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)"
+    ],
+    "deny": [
+      "Bash(git push *)",
+      "Read(.env)",
+      "Read(.env.*)"
+    ]
+  }
+}

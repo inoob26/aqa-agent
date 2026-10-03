@@ -28,3 +28,6 @@ playwright-report/
 allure-results/
 .coverage
 node_modules/
+
+# Eval run output
+evals/results/

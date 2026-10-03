@@ -1,81 +1,188 @@
 # aqa agent
 
 An AI **test automation engineer**. It takes a task description (PRD, user story, ticket,
-`git diff`, OpenAPI spec, bug report), derives **test cases** from it, then writes
-**executable tests** — in Python (pytest) or TypeScript (Playwright).
+`git diff`, OpenAPI spec, bug report), derives **test cases** from it, stops for a human
+review, then writes **executable tests** — in Python (pytest) or TypeScript (Playwright) —
+and proves each one fails when the behavior it covers is broken.
 
-Runs in two runtimes — **Claude Code** and **Codex CLI** — from a single source of truth.
-The structure mirrors its sibling [`py-devops-agent`](../py-devops-agent).
+Runs in two runtimes from a single source: **Claude Code** (as a plugin) and **Codex CLI**.
 
-## Architecture
+## How it works
 
-| Entity | Claude Code | Codex CLI |
-|--------|-------------|-----------|
-| Agent (persona + tools) | `.claude/agents/aqa.md` | `.codex/agents/aqa.toml` |
-| Skills (capabilities) | `.claude/skills/` → symlink | `.agents/skills/` (native) |
-| Shared context | `AGENTS.md` + `CLAUDE.md` | `AGENTS.md` |
+```
+task description ──► aqa-cases ──► .agents/aqa/<slug>/coverage.md (draft)
+                                         │
+                                  human review  ◄── the gate: the agent never approves
+                                         │           its own matrix
+                                         ▼
+                     aqa-generate ──► tests with `Scenario: SC-NNN` references
+                                         │
+                                         ▼
+                     aqa-verify ───► lint · traceability · parallel run · mutation check
+                                     └─► .agents/aqa/<slug>/verification.md
+```
 
-Skills follow the [open Agent Skills standard](https://agentskills.io): the same `SKILL.md`
-works in both tools. The real source is `.agents/skills/`; Claude Code sees it through the
-`.claude/skills` symlink. Edit a skill once and it changes everywhere.
+The intermediate artifacts — requirements, risks, the coverage matrix, scenarios, oracles —
+are files in the target project, committed next to the tests. The rules the agent follows
+(order of work, file formats, traceability, how to mutate without touching the product,
+hard prohibitions) are one skill: [`aqa-workflow`](.agents/skills/aqa-workflow/SKILL.md).
 
-> 🪟 **Windows.** The `.claude/skills` symlink is stored in git as a symlink (mode `120000`)
-> and works correctly on Linux/macOS. On `git clone` under Windows without symlink support it
-> expands into a text stub and Claude Code won't find the skills. Enable support once:
-> Developer Mode (or run as admin) + `git config --global core.symlinks true`, then re-clone.
-> The real skill files live in `.agents/skills/` and are platform-independent.
+## Install
+
+### Claude Code — plugin
+
+```bash
+claude plugin marketplace add inoob26/aqa-agent
+claude plugin install aqa@aqa-agent
+```
+
+The plugin brings the `aqa` agent, the skills (as `/aqa:aqa-cases`, `/aqa:aqa-generate`, …),
+a `PostToolUse` hook that lints every test file as it is written, and the Playwright MCP
+server for looking up real selectors in a running app. Nothing is copied into your project
+and your `AGENTS.md` / `CLAUDE.md` are not touched.
+
+To try it from a checkout without installing: `claude --plugin-dir /path/to/aqa-agent`.
+
+Optional, in the target project: merge [`templates/claude-settings.json`](templates/claude-settings.json)
+into `.claude/settings.json` to pre-approve the commands the agent runs (test runners,
+linters, `git diff`, `gh pr view`). A plugin cannot ship permissions, so this is a manual step.
+
+### Codex CLI, or Claude Code without the plugin
+
+```bash
+scripts/install.sh /path/to/your-project            # both runtimes
+scripts/install.sh /path/to/your-project --codex    # Codex only
+```
+
+This copies the skills to `<project>/.agents/skills/` and the persona to
+`.codex/agents/aqa.toml` and/or `.claude/agents/aqa.md`. It never touches the project's
+`AGENTS.md` or `CLAUDE.md`. Re-run it to update.
+
+**Without the plugin**, add by hand what the plugin would have provided:
+
+- the lint hook — merge [`templates/claude-hooks.json`](templates/claude-hooks.json) into
+  `.claude/settings.json`;
+- the Playwright MCP server — `claude mcp add playwright -- npx @playwright/mcp@latest`.
+
+> Check the Codex paths (`.codex/agents/`, `.agents/skills/`) against your CLI version in
+> the [Codex documentation](https://developers.openai.com/codex/skills). The Codex persona
+> pins no model; it uses the one in your Codex profile.
+
+## Use
+
+The first thing to do in a new target project is `qa-project-context`: it writes
+`.agents/qa-project-context.md`, and every other skill reads it instead of re-asking about
+the stack and conventions.
+
+| You say | What runs |
+|---------|-----------|
+| "Test cases for docs/prd/checkout.md" · "Cover this PR" · `/aqa:aqa-cases SHOP-42` | `aqa-cases` → artifacts + a draft matrix, then stops |
+| "Approved, write the tests" · `/aqa:aqa-generate shop-42` | `aqa-generate` → tests, lint, traceability |
+| "Check they can fail" · `/aqa:aqa-verify shop-42` | `aqa-verify` → runs, mutation check, `verification.md` |
+| "Here's a bug report — regression test, no review round" | all three; the red test is the deliverable |
+| "Plan testing for the sprint" | `test-planning` |
+| "This test fails one run in ten" | `test-reliability` |
+
+Inputs are read from where they live: a file, `gh issue view`, `gh pr diff`, `git diff
+main...HEAD`. Jira or Linear tickets are read through that tracker's MCP server if you have
+one connected; otherwise paste the text.
+
+### In CI
+
+[`templates/github/aqa.yml`](templates/github/aqa.yml) runs the agent on pull requests:
+the label `aqa` produces the test cases and posts the matrix as a comment; the label
+`aqa:approved` — applied by a human, which is the review gate — writes the tests and
+commits them to the PR branch. It is plain `claude -p --plugin-dir … --agent aqa:aqa`, so
+the same command works in any CI system.
 
 ## Skills
 
-| Skill | Purpose | Language |
-|-------|---------|----------|
-| `qa-project-context`     | Stack, frameworks, CI, environments, risks → `.agents/qa-project-context.md`. Read **first** by every other skill | — |
-| `test-planning`          | Sprint/release plan: scope, depth, estimation, priorities, risk × effort matrix | — |
-| `ai-test-generation`     | The pipeline "task description → requirements → risks → coverage matrix → scenarios → oracles → code", with guardrails against hallucinated APIs and empty assertions | — |
-| `playwright-automation`  | E2E: Page Object, fixtures, auto-waiting, locators, parallel execution, sharding, CI | TypeScript |
-| `api-testing`            | REST/GraphQL: APIRequestContext, Supertest, Zod/AJV schemas, auth flows, CRUD, pagination | TypeScript |
-| `python-test-automation` | pytest: fixtures, parametrization, pytest-playwright, httpx, Pydantic v2 contracts, respx, xdist, Allure | Python |
+Single source: `.agents/skills/` ([Agent Skills standard](https://agentskills.io)). Claude
+Code sees them through the plugin manifest (and, inside this repository, through the
+`.claude/skills` symlink); Codex reads `.agents/skills/` natively.
 
-The agent's order of work: **context → scope → test cases → code → verification**.
-Code comes last, after the coverage matrix — details in [AGENTS.md](./AGENTS.md).
+| Skill | Purpose | Origin |
+|-------|---------|--------|
+| `aqa-workflow`           | The agent's rules: order of work, artifact contract, traceability, mutation check, prohibitions | ours |
+| `aqa-cases`              | Task description → requirements, risks, coverage matrix, scenarios, oracles. Stops for review | ours |
+| `aqa-generate`           | Approved matrix → test code with traceability | ours |
+| `aqa-verify`             | Lint, traceability, parallel run, mutation check. Ships `aqa_lint.py` | ours |
+| `python-test-automation` | Python: pytest, pytest-playwright, httpx, Pydantic v2 contracts, respx, xdist | ours |
+| `qa-project-context`     | Stack, frameworks, CI, environments, risks → `.agents/qa-project-context.md` | vendored |
+| `test-planning`          | Sprint/release plan: scope, depth, estimation, priorities | vendored |
+| `ai-test-generation`     | Extraction, risk analysis, scenario and oracle techniques | vendored |
+| `unit-testing`           | Unit tests in pytest/Jest/Vitest, test doubles, mutation testing | vendored |
+| `playwright-automation`  | TypeScript E2E: Page Object, fixtures, locators, sharding, CI | vendored |
+| `api-testing`            | TypeScript API: APIRequestContext, Supertest, Zod/AJV | vendored |
+| `test-reliability`       | Flaky tests: classification, healing, quarantine | vendored |
 
-### Choosing the language
+### The linter
 
-By the target project's stack, not by preference: `pyproject.toml`/`conftest.py` → Python,
-`package.json`/`playwright.config.ts` → TypeScript. A Python backend with a JS frontend gets
-API tests in Python and E2E in TypeScript.
+[`aqa_lint.py`](.agents/skills/aqa-verify/scripts/aqa_lint.py) turns the agent's
+prohibitions from prose into exit codes. Standard library only, so it runs in any project.
 
-The conceptual layer (locator priority, Page Object design, why a schema contract beats a key
-check) is the same in both languages — only the syntax differs. That's why
-`python-test-automation` points at `playwright-automation`'s reference files instead of
-duplicating them.
+```bash
+aqa_lint.py lint  tests/                        # fixed sleeps, retries, .only, secrets, empty asserts
+aqa_lint.py trace .agents/aqa/<slug> tests/     # every test ↔ a matrix row, both directions
+aqa_lint.py gate  .agents/aqa/<slug>            # is the matrix approved?
+```
 
-## Structure
+## Repository layout
 
 ```
 aqa-agent/
-├── AGENTS.md                       # shared context (both runtimes)
-├── CLAUDE.md                       # thin pointer → AGENTS.md
-├── README.md
-├── pyproject.toml
+├── .claude-plugin/                 # plugin.json, marketplace.json
 ├── .agents/skills/                 # ★ single source of skills
-│   ├── LICENSE.qa-skills           # MIT license of the vendored skills
-│   ├── qa-project-context/
-│   ├── test-planning/
-│   ├── ai-test-generation/
-│   ├── playwright-automation/
-│   ├── api-testing/
-│   └── python-test-automation/     # ours
-├── .claude/
-│   ├── agents/aqa.md
-│   └── skills → ../.agents/skills  # symlink
-└── .codex/
-    └── agents/aqa.toml
+├── persona/aqa.md                  # ★ single source of the persona
+├── .claude/agents/aqa.md           # generated
+├── .codex/agents/aqa.toml          # generated
+├── .claude/skills → ../.agents/skills
+├── hooks/hooks.json                # plugin hook: lint test files on write
+├── .mcp.json                       # plugin MCP server: Playwright
+├── scripts/                        # build_personas.py, install.sh
+├── templates/                      # for target projects: CI workflow, settings, hooks
+├── tests/                          # linter tests, repository consistency
+└── evals/                          # behavioral cases for `claude plugin eval`
 ```
+
+> 🪟 **Windows.** `.claude/skills` is a git symlink (mode `120000`). It only matters when
+> working inside this repository; the plugin and `install.sh` do not depend on it. To clone
+> with symlinks: Developer Mode + `git config --global core.symlinks true`.
+
+## Development
+
+```bash
+uv sync
+uv run pytest                          # linter + repository consistency
+uv run ruff check . && uv run mypy
+python3 scripts/build_personas.py      # after editing persona/aqa.md
+claude plugin validate .
+```
+
+### Evals
+
+`evals/` holds behavioral cases run against a small fixture project (`evals/_shop/`, a
+discount function with one seeded bug):
+
+| Case | Asserts |
+|------|---------|
+| `cases-stop-at-gate` | A story becomes artifacts on disk with a `draft` matrix; no test code; the reply asks for review |
+| `generate-blocked-by-draft` | With a draft matrix the agent writes no tests and does not approve it itself |
+| `generate-from-approved` | An approved matrix becomes tests that reference every `SC-NNN`; product code untouched |
+| `bug-report-keeps-product` | A bug report yields a regression test; the bug is reported, not fixed |
+
+```bash
+claude plugin eval . --scaffold --allow-tools Write Edit Bash --ablation none --runs 1
+claude plugin eval . --scaffold --allow-tools Write Edit Bash --case cases-stop-at-gate --runs 1
+```
+
+Evals call the model on your account. `--scaffold` runs the fixture scripts; Bash runs in
+Claude Code's sandbox (Linux needs `bubblewrap` and `socat`). The fixture has no pytest
+installed, so the cases check what is written, not test results.
 
 ## Provenance
 
-Five skills are vendored copies from
+Seven skills are vendored from
 [petrkindlmann/qa-skills](https://github.com/petrkindlmann/qa-skills)
 (MIT, © 2026 Petr Kindlmann), commit `b3bb61b`. The license text is at
 `.agents/skills/LICENSE.qa-skills`.
@@ -84,115 +191,33 @@ Local modifications:
 
 - `qa-project-context`: the blank context template, which upstream keeps at its repository
   root, moved to `references/template.md` next to the skill, and the reference in `SKILL.md`
-  updated. Without this the skill pointed at a file that doesn't exist in our copy.
+  updated.
+- `ai-test-generation`: hardcoded model names in "Model selection per step" and "Done When"
+  replaced with tier descriptions — the names go stale faster than the skill.
 
-`python-test-automation` is ours: the upstream automation skills are written for TypeScript
-and mention Python only in passing.
+Upstream skills cross-reference siblings we did not take (7 of 50 are here). Those names
+stay in the vendored text; `aqa-workflow` tells the agent to treat such a reference as out
+of scope rather than stop, and `tests/test_repo.py` keeps the list of known absent names.
+Where upstream and our rules disagree — `test-reliability` uses retries as a detection
+signal in quarantine — `aqa-workflow` wins and the linter requires an explicit
+`aqa: allow-retries <ticket>` marker.
 
 ### Updating the vendored skills
 
 ```bash
 git clone --depth 1 https://github.com/petrkindlmann/qa-skills.git /tmp/qa-skills
-for s in qa-project-context test-planning ai-test-generation playwright-automation api-testing; do
+for s in qa-project-context test-planning ai-test-generation unit-testing \
+         playwright-automation api-testing test-reliability; do
   diff -ru ".agents/skills/$s" "/tmp/qa-skills/skills/$s"
 done
 ```
 
-Review the diff before copying: the modification listed above has to be reapplied.
-
-Upstream skills cross-reference each other ("see `test-strategy`", "use `visual-testing`").
-We took 6 of 50, so references to the rest remain as text and lead nowhere. If you need
-another one, copy its folder from upstream into `.agents/skills/` and add a row to the skills
-table in `AGENTS.md` and to the personas (`.claude/agents/aqa.md`, `.codex/agents/aqa.toml`).
-
-## Installation
-
-The agent has three parts: the **persona** (`.md`/`.toml`), the **skills**
-(`.agents/skills/`) and the **shared context** (`AGENTS.md`). Skills are the single source of
-truth, so when copying it matters that `.claude/skills` stays a symlink instead of being
-expanded into a copy.
-
-> ⚠️ `cp -r` dereferences symlinks by default. Use `cp -a` (or `cp -rL` only if you
-> deliberately want two independent copies). `git`, `rsync -a` and `tar` preserve symlinks.
-
-### Into a project
-
-```bash
-TARGET=/path/to/your-project
-
-cp -a .agents          "$TARGET"/
-cp -a .claude          "$TARGET"/   # .claude/skills stays a symlink → ../.agents/skills
-cp -a .codex           "$TARGET"/
-cp -a AGENTS.md CLAUDE.md "$TARGET"/
-
-# verify the symlink didn't expand into a copy
-ls -la "$TARGET"/.claude/skills      # expect: skills -> ../.agents/skills
-```
-
-Claude Code only (no Codex) — `.agents/`, `.claude/`, `AGENTS.md`, `CLAUDE.md` are enough.
-Codex only — `.agents/`, `.codex/`, `AGENTS.md`.
-
-### Globally (in `~`)
-
-```bash
-SRC="$(pwd)"            # root of this repository
-
-# --- Claude Code (~/.claude) ---
-mkdir -p ~/.claude/agents
-ln -sfn "$SRC/.claude/agents/aqa.md" ~/.claude/agents/aqa.md
-ln -sfn "$SRC/.agents/skills"        ~/.claude/skills
-
-# --- Codex CLI (~/.codex) ---
-mkdir -p ~/.codex/agents
-ln -sfn "$SRC/.codex/agents/aqa.toml" ~/.codex/agents/aqa.toml
-ln -sfn "$SRC/.agents/skills"         ~/.codex/skills
-```
-
-> ⚠️ Global `~/.claude/skills` is shared by all agents. If it already points at
-> `py-devops-agent`'s skills, the second `ln -sfn` overwrites it. Keep one agent's skills
-> global and install the other per-project, or build a combined directory of symlinks to the
-> individual skills of both repositories.
-
-> Check Codex's global skills path (`~/.codex/skills`) against your CLI version in the
-> [Codex documentation](https://developers.openai.com/codex/skills).
-
-To update, `git pull` in `$SRC`; the symlinks see the new version immediately.
-
-## Running
-
-**Claude Code** — invoke the `aqa` subagent. From the monorepo root, via the Makefile:
-
-```bash
-make dc-claude repo=aqa-agent
-```
-
-**Codex CLI** — `codex` reads `.codex/agents/` and `.agents/skills/` automatically.
-
-The first thing to do in a new target project is to create `.agents/qa-project-context.md`
-(the `qa-project-context` skill). Without it every skill re-asks about the stack, the
-frameworks and the conventions.
-
-Example requests:
-
-- "Here's a feature description — make a test plan and write E2E tests for checkout"
-- "Generate API tests from this OpenAPI spec"
-- "Here's a bug report — write a failing regression test"
-- "Build a coverage matrix for this user story, don't write code yet"
-
-## Development
-
-```bash
-uv sync            # install dependencies
-ruff check .       # lint
-mypy .             # type check
-pytest             # tests
-```
-
-> There's no Python code in the repository yet — this is a configuration-only agent. The
-> commands matter once skill validation or tests for the skills appear.
+Review the diff before copying: the modifications listed above have to be reapplied. To add
+another upstream skill, copy its folder into `.agents/skills/` and follow the checklist in
+[AGENTS.md](./AGENTS.md).
 
 ## License
 
-MIT, see [LICENSE](./LICENSE) — this covers the agent configuration and the
-`python-test-automation` skill. The five vendored skills keep their own upstream MIT
-license at `.agents/skills/LICENSE.qa-skills`; see [Provenance](#provenance).
+MIT, see [LICENSE](./LICENSE) — this covers the agent configuration, the scripts and our
+five skills. The vendored skills keep their upstream MIT license at
+`.agents/skills/LICENSE.qa-skills`.

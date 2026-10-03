@@ -196,7 +196,7 @@ Hard rules. Agents MUST follow them.
 
 ## Model selection per step
 
-Route by difficulty, not habit. Use a cheap model for mechanical extraction (Step 1) and the coverage-matrix bookkeeping (Step 3) — **Haiku 4.5** or **Sonnet 4.6** are plenty. Escalate to **Opus 4.8** for oracle design (Step 5) and hallucination-sensitive code generation (Step 6), where a wrong inference is expensive; reach for **Fable 5** only on genuinely hard reasoning (subtle invariants, regulated-domain logic). Running the strongest model on every step is wasteful; running the cheapest on Step 6 produces fabricated APIs.
+Route by difficulty, not habit. Use a small, cheap model for mechanical extraction (Step 1) and the coverage-matrix bookkeeping (Step 3). Escalate to the strongest generally available model for oracle design (Step 5) and hallucination-sensitive code generation (Step 6), where a wrong inference is expensive; reserve the top reasoning tier for genuinely hard problems (subtle invariants, regulated-domain logic). Model names change faster than this file — take the current ones from the runtime, not from here. Running the strongest model on every step is wasteful; running the cheapest on Step 6 produces fabricated APIs.
 
 ## Verification
 
@@ -230,7 +230,7 @@ Any `MISSING` line or `tsc` error is a hallucination to fix before a human spend
 - Verification passed: `tsc --noEmit` (or language equivalent) exits 0 and the selector/endpoint grep reports zero `MISSING` lines.
 - Each generated test has a recorded human review decision; no test is marked KEEP without one.
 - The suite's CI job exits 0 (green).
-- Reproducibility metadata recorded: the exact model ID (e.g. `claude-opus-4-8`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`), input source hash, and the version of any skill / CLI / MCP server invoked.
+- Reproducibility metadata recorded: the exact model ID as reported by the runtime, input source hash, and the version of any skill / CLI / MCP server invoked.
 
 ## Related Skills
 

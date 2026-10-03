@@ -1,0 +1,11 @@
+{
+  "name": "aqa",
+  "version": "0.2.0",
+  "description": "Test automation engineer: turns a task description into reviewed test cases and executable tests in Python (pytest) or TypeScript (Playwright), and proves each test can fail.",
+  "author": { "name": "initk.tech" },
+  "repository": "https://github.com/inoob26/aqa-agent",
+  "license": "MIT",
+  "keywords": ["testing", "qa", "test-automation", "pytest", "playwright"],
+  "skills": ["./.agents/skills/"],
+  "agents": ["./.claude/agents/aqa.md"]
+}
