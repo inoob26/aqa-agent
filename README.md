@@ -100,6 +100,46 @@ git clone https://github.com/inoob26/aqa-agent.git
 claude --plugin-dir ./aqa-agent
 ```
 
+### pi
+
+The repository is also a [pi](https://pi.dev) package. `package.json` gives pi the skills,
+an extension that registers the Playwright MCP server, and a subagent.
+
+```bash
+pi install git:github.com/inoob26/aqa-agent        # personal scope
+pi install -l git:github.com/inoob26/aqa-agent     # project scope (.pi/settings.json)
+pi -e ./aqa-agent                                  # local test, one session only
+```
+
+In pi, run the skills as `/skill:test-cases`, `/skill:bdd`, `/skill:api-tests`,
+`/skill:playwright-tests` and `/skill:verify`. The arguments are the same. The skills find
+`scripts/aqa_lint.py` relative to `SKILL.md`, because pi does not set `CLAUDE_PLUGIN_ROOT`.
+
+| Part | With the extension | Without the extension |
+|---|---|---|
+| Skills | — | Always available |
+| Playwright MCP | Pi 1.x built-in MCP or [pi-mcp-extension](https://pi.dev/packages/pi-mcp-extension): `pi/extensions/playwright-mcp.ts` registers the `playwright` server | `playwright-tests` takes the selectors from the component source, or asks you to run `npx playwright codegen <url>` |
+| Subagent | [pi-subagents](https://pi.dev/packages/pi-subagents): `pi/agents/aqa-agent.md` | Run the skills in the main session |
+
+Notes:
+
+- The `aqa-agent` subagent runs in the background (`async: true`). A background child loads
+  the MCP extensions of the session, so the subagent can use the Playwright MCP tools.
+- A `playwright` entry in `~/.pi/agent/mcp.json` or `.pi/mcp.json` replaces the registered
+  server. Use it with an older pi or with a different MCP extension:
+
+  ```json
+  {
+    "mcpServers": {
+      "playwright": { "command": "npx", "args": ["-y", "@playwright/mcp@latest"] }
+    }
+  }
+  ```
+
+- If no MCP extension is active, pi shows an error for the registered `playwright` server.
+  To stop the error, turn off the package extension with `pi config`, or set
+  `"extensions": []` in the package entry in `settings.json`.
+
 ## Lint script
 
 ```bash
@@ -116,6 +156,9 @@ Python 3.10 or later, standard library only. Exit code 0 = OK, 1 = check failed,
 
 ```
 .claude-plugin/plugin.json
+package.json                      pi package manifest
+pi/extensions/playwright-mcp.ts   pi: registers the Playwright MCP server
+pi/agents/aqa-agent.md            pi: subagent for pi-subagents
 .mcp.json                         Playwright MCP server
 agents/aqa-agent.md               subagent
 scripts/aqa_lint.py               gate, cases, trace, lint, report

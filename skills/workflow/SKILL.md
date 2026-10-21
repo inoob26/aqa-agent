@@ -113,7 +113,9 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate .agents/aqa/<slug>
 A non-zero exit means: stop, show the message, ask for the review.
 
 **Lint script location.** If `CLAUDE_PLUGIN_ROOT` is empty in the shell, the script is
-`../../scripts/aqa_lint.py` relative to this `SKILL.md`. Commands of the script:
+`../../scripts/aqa_lint.py` relative to this `SKILL.md`. This is the case in pi, which does
+not set `CLAUDE_PLUGIN_ROOT`. In pi, the commands are `/skill:test-cases`, `/skill:bdd`,
+`/skill:api-tests`, `/skill:playwright-tests` and `/skill:verify`. Commands of the script:
 
 | Command | Checks |
 |---|---|

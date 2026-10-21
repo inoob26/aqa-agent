@@ -49,7 +49,9 @@ Load the `workflow` skill of this plugin first.
    1. The component source: roles, labels, `data-testid` values, visible texts.
    2. A live page through the Playwright MCP server: `browser_navigate` to the page, then
       `browser_snapshot` for the accessibility tree. Use `--url`, else `baseURL` from the
-      config. Log in through the same path as the suite's auth setup.
+      config. Log in through the same path as the suite's auth setup. The tool names have a
+      prefix that depends on the agent, for example `mcp__playwright__browser_snapshot` or
+      `mcp_playwright_browser_snapshot`: use the tool whose name ends in the MCP name.
    3. `npx playwright codegen <url>` — ask the person to run it if no MCP server is available.
 
    Locator priority: `getByRole` with name → `getByLabel` → `getByPlaceholder` → `getByText`
@@ -80,7 +82,7 @@ Load the `workflow` skill of this plugin first.
 
    Also run the project's linter on the new files.
 9. **Run the new tests once** in the e2e project (in BDD mode run `npx bddgen` first). A failure
-   is a defect in the test (fix it; use the trace and the MCP snapshot) or a defect in the
+   is a defect in the test (fix it; use the trace and, if available, the MCP snapshot) or a defect in the
    product (keep the test red, write it in `Notes`). Never change the product. Run a passed
    test 3 times with `--repeat-each=3` to catch flakiness.
 10. **Record and hand over.** Put the file in the `Test` column of `coverage.md`. Tell the

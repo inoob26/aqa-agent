@@ -1,0 +1,27 @@
+{
+  "name": "aqa-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AQA agent: test cases from a task, spec, ADR or OpenAPI file, then Gherkin features, Playwright API tests and Playwright UI tests with traceability and a review gate.",
+  "keywords": [
+    "pi-package",
+    "qa",
+    "test-automation",
+    "playwright",
+    "playwright-bdd",
+    "bdd",
+    "test-cases"
+  ],
+  "license": "MIT",
+  "repository": "https://github.com/inoob26/aqa-agent",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "skills": ["./skills"],
+    "extensions": ["./pi/extensions/playwright-mcp.ts"],
+    "subagents": {
+      "agents": ["./pi/agents"]
+    }
+  }
+}
