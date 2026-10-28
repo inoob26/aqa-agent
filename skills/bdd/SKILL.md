@@ -2,14 +2,14 @@
 name: bdd
 description: >-
   Write Gherkin .feature files for playwright-bdd from approved test cases in
-  .agents/aqa/<slug>/: checks the review gate, reuses the step texts that the suite already
+  docs/qa/<slug>/: checks the review gate, reuses the step texts that the suite already
   has, and tags each scenario with @TC, @REQ, layer and priority. Writes no step code;
   api-tests and playwright-tests write the steps later.
   Use when: "write BDD scenarios," "Gherkin from the test cases," "feature files for <slug>."
   Not for: deriving the cases — use test-cases first.
   Not for: step definitions — use api-tests or playwright-tests.
   Related: workflow, test-cases, api-tests, playwright-tests, verify.
-argument-hint: "<slug | .agents/aqa/<slug>> [TC ids]"
+argument-hint: "<slug | docs/qa/<slug>> [TC ids]"
 license: MIT
 metadata:
   author: Nikolay Morgunov
@@ -32,7 +32,7 @@ Load the `workflow` skill of this plugin first.
 1. **Check the gate.**
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate .agents/aqa/<slug>
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate docs/qa/<slug>
    ```
 
    A non-zero exit means: stop and ask for the review. Do not edit the status.
@@ -62,7 +62,7 @@ Load the `workflow` skill of this plugin first.
 
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" lint tests/features/<slug>
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace .agents/aqa/<slug> tests/features/<slug>
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace docs/qa/<slug> tests/features/<slug>
    ```
 
    If `playwright-bdd` is installed, also run `npx bddgen` and report the missing steps
@@ -73,4 +73,4 @@ Load the `workflow` skill of this plugin first.
 - Every selected TC has one scenario with its `@TC` and `@REQ` tags.
 - `aqa_lint.py lint` and `aqa_lint.py trace` exit 0.
 - The person has the list of new step texts per layer.
-- No file outside `tests/features/` and `.agents/aqa/<slug>/` was modified.
+- No file outside `tests/features/` and `docs/qa/<slug>/` was modified.

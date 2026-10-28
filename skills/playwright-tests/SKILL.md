@@ -2,14 +2,14 @@
 name: playwright-tests
 description: >-
   Write Playwright UI (end-to-end) tests in TypeScript for the approved ui-layer test cases
-  in .agents/aqa/<slug>/. Two modes: playwright-bdd step definitions when the .feature files
+  in docs/qa/<slug>/. Two modes: playwright-bdd step definitions when the .feature files
   exist, else plain *.spec.ts files. Takes selectors from the component source or a live page
   snapshot (Playwright MCP), reuses page objects and fixtures, tags each test with @TC and @REQ.
   Use when: "write the e2e tests," "automate the ui cases," "Playwright tests for <slug>."
   Not for: deriving the cases — use test-cases first.
   Not for: API-only checks — use api-tests.
   Related: workflow, test-cases, bdd, api-tests, verify.
-argument-hint: "<slug | .agents/aqa/<slug>> [TC ids] [--url <base url>]"
+argument-hint: "<slug | docs/qa/<slug>> [TC ids] [--url <base url>]"
 license: MIT
 metadata:
   author: Nikolay Morgunov
@@ -32,7 +32,7 @@ Load the `workflow` skill of this plugin first.
 1. **Check the gate.**
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate .agents/aqa/<slug>
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate docs/qa/<slug>
    ```
 
    A non-zero exit means: stop and ask for the review. Do not edit the status.
@@ -49,7 +49,9 @@ Load the `workflow` skill of this plugin first.
    1. The component source: roles, labels, `data-testid` values, visible texts.
    2. A live page through the Playwright MCP server: `browser_navigate` to the page, then
       `browser_snapshot` for the accessibility tree. Use `--url`, else `baseURL` from the
-      config. Log in through the same path as the suite's auth setup.
+      config. Log in through the same path as the suite's auth setup. The tool names have a
+      prefix that depends on the agent, for example `mcp__playwright__browser_snapshot` or
+      `mcp_playwright_browser_snapshot`: use the tool whose name ends in the MCP name.
    3. `npx playwright codegen <url>` — ask the person to run it if no MCP server is available.
 
    Locator priority: `getByRole` with name → `getByLabel` → `getByPlaceholder` → `getByText`
@@ -74,13 +76,13 @@ Load the `workflow` skill of this plugin first.
 
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" lint <test paths>
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace .agents/aqa/<slug> <test paths> --layer ui
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace docs/qa/<slug> <test paths> --layer ui
    npx tsc --noEmit
    ```
 
    Also run the project's linter on the new files.
 9. **Run the new tests once** in the e2e project (in BDD mode run `npx bddgen` first). A failure
-   is a defect in the test (fix it; use the trace and the MCP snapshot) or a defect in the
+   is a defect in the test (fix it; use the trace and, if available, the MCP snapshot) or a defect in the
    product (keep the test red, write it in `Notes`). Never change the product. Run a passed
    test 3 times with `--repeat-each=3` to catch flakiness.
 10. **Record and hand over.** Put the file in the `Test` column of `coverage.md`. Tell the
@@ -91,5 +93,5 @@ Load the `workflow` skill of this plugin first.
 - Every selected `auto` ui row has a test, or is `deferred` with a reason.
 - `aqa_lint.py lint`, `aqa_lint.py trace --layer ui` and `tsc --noEmit` exit 0.
 - The new tests ran; each failure has a classification; no test is flaky in 3 runs.
-- No file outside the test tree, the scaffold files (if approved) and `.agents/aqa/<slug>/`
+- No file outside the test tree, the scaffold files (if approved) and `docs/qa/<slug>/`
   was modified.

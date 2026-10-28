@@ -1,7 +1,7 @@
 ---
 name: workflow
 description: >-
-  Shared rules for every aqa-agent command: the artifact folder .agents/aqa/<slug>/, the
+  Shared rules for every aqa-agent command: the artifact folder docs/qa/<slug>/, the
   file formats (requirements.md, test-cases.md, coverage.md, questions.md), the review gate,
   the ID and traceability rules, the test layout, and the lint script.
   Load it before any other aqa-agent skill does work.
@@ -26,7 +26,7 @@ can trace each test back to a test case and each test case back to a requirement
 task / spec / ADR / OpenAPI
         │  /aqa-agent:test-cases
         ▼
-.agents/aqa/<slug>/   status: draft ──(person sets approved)──▶ status: approved
+docs/qa/<slug>/   status: draft ──(person sets approved)──▶ status: approved
         │                                                          │
         │            ┌─────────────────────────────────────────────┤
         │            ▼                    ▼                        ▼
@@ -40,7 +40,7 @@ task / spec / ADR / OpenAPI
 
 ## Artifact folder
 
-Everything for one feature lives in `.agents/aqa/<slug>/` in the target project:
+Everything for one feature lives in `docs/qa/<slug>/` in the target project:
 
 | File | Written by | Content |
 |---|---|---|
@@ -107,13 +107,15 @@ that `/aqa-agent:test-cases` writes `draft` when it creates or regenerates the f
 Every generator starts with:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate .agents/aqa/<slug>
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate docs/qa/<slug>
 ```
 
 A non-zero exit means: stop, show the message, ask for the review.
 
 **Lint script location.** If `CLAUDE_PLUGIN_ROOT` is empty in the shell, the script is
-`../../scripts/aqa_lint.py` relative to this `SKILL.md`. Commands of the script:
+`../../scripts/aqa_lint.py` relative to this `SKILL.md`. This is the case in pi, which does
+not set `CLAUDE_PLUGIN_ROOT`. In pi, the commands are `/skill:test-cases`, `/skill:bdd`,
+`/skill:api-tests`, `/skill:playwright-tests` and `/skill:verify`. Commands of the script:
 
 | Command | Checks |
 |---|---|
@@ -174,6 +176,6 @@ for BDD mode), ask the person. On "yes", apply `references/scaffold.md`. On "no"
 - Never change product code. A test that fails because of a product defect stays red;
   record the defect in `coverage.md` Notes.
 - Never add a dependency without the person's approval.
-- Only write in the test tree, `playwright.config.ts` (scaffold only), and `.agents/aqa/<slug>/`.
+- Only write in the test tree, `playwright.config.ts` (scaffold only), and `docs/qa/<slug>/`.
 - No `waitForTimeout`, no `.only`, no hard-coded secrets: read credentials from env vars.
 - Web-first assertions only (`await expect(locator).toBeVisible()`), no manual polling.

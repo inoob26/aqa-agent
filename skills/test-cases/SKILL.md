@@ -2,7 +2,7 @@
 name: test-cases
 description: >-
   Derive requirements and test cases from a task text, an OpenSpec or Spec Kit spec, an ADR,
-  an OpenAPI file, or any mix of them. Writes .agents/aqa/<slug>/ (requirements.md,
+  an OpenAPI file, or any mix of them. Writes docs/qa/<slug>/ (requirements.md,
   test-cases.md, coverage.md, questions.md) with status draft for a person to review.
   Applies EP, BVA, negative paths, state transitions, decision tables and pairwise.
   Use when: "write test cases for…," "what must we test for this spec/ADR/endpoint,"
@@ -36,7 +36,7 @@ formats and `references/techniques.md` for the design techniques.
    a YAML or JSON file with `openapi:` or `swagger:` → OpenAPI. The remaining text is a task.
    If an argument is neither an existing path nor clear text, ask the person.
 2. **Fix the slug and the folder.** Derive the slug (rules in `workflow`). If
-   `.agents/aqa/<slug>/test-cases.md` exists, read it and ask the person: regenerate (the
+   `docs/qa/<slug>/test-cases.md` exists, read it and ask the person: regenerate (the
    status goes back to `draft`, existing TC IDs stay), add cases only, or stop.
 3. **Read the sources and the project.** Read every input in full. Then look for the code
    and docs that the inputs name: routes or controllers, UI components, models, an OpenAPI
@@ -55,7 +55,7 @@ formats and `references/techniques.md` for the design techniques.
 8. **Check the structure.**
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" cases .agents/aqa/<slug>
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" cases docs/qa/<slug>
    ```
 
    Fix every error before you continue.
@@ -74,7 +74,7 @@ formats and `references/techniques.md` for the design techniques.
 
 ## Done when
 
-- The four files exist in `.agents/aqa/<slug>/` and `aqa_lint.py cases` exits 0.
+- The four files exist in `docs/qa/<slug>/` and `aqa_lint.py cases` exits 0.
 - `status` is `draft`.
 - Every gap and conflict is in `questions.md`, and each dependent TC is `deferred` with the `Q-N`.
-- No file outside `.agents/aqa/<slug>/` was modified.
+- No file outside `docs/qa/<slug>/` was modified.

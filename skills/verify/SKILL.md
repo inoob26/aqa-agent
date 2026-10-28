@@ -1,14 +1,14 @@
 ---
 name: verify
 description: >-
-  Prove that the generated tests for .agents/aqa/<slug>/ run and can fail: runs them with the
+  Prove that the generated tests for docs/qa/<slug>/ run and can fail: runs them with the
   Playwright JSON reporter, makes a mutation check (changes one oracle per test and expects a
   red result), checks the trace from REQ to TC to test, and writes report.md.
   Use when: "verify the tests," "do the tests really check anything," "coverage report for
   <slug>," after api-tests or playwright-tests.
   Not for: writing tests — use api-tests or playwright-tests.
   Related: workflow, test-cases, bdd, api-tests, playwright-tests.
-argument-hint: "<slug | .agents/aqa/<slug>> [--no-mutation] [TC ids]"
+argument-hint: "<slug | docs/qa/<slug>> [--no-mutation] [TC ids]"
 license: MIT
 metadata:
   author: Nikolay Morgunov
@@ -30,9 +30,9 @@ Load the `workflow` skill of this plugin first.
 1. **Static checks.** Collect the test files from the `Test` column of `coverage.md`.
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" cases .agents/aqa/<slug>
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" cases docs/qa/<slug>
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" lint <test files>
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace .agents/aqa/<slug> <test files>
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace docs/qa/<slug> <test files>
    ```
 
    Report each error. Continue with the run only when `lint` passes.
@@ -40,7 +40,7 @@ Load the `workflow` skill of this plugin first.
 
    ```bash
    npx bddgen   # only if the project uses playwright-bdd
-   PLAYWRIGHT_JSON_OUTPUT_NAME=.agents/aqa/<slug>/results.json \
+   PLAYWRIGHT_JSON_OUTPUT_NAME=docs/qa/<slug>/results.json \
      npx playwright test --grep "@TC-001|@TC-002" --reporter=list,json
    ```
 
@@ -58,7 +58,7 @@ Load the `workflow` skill of this plugin first.
    4. Restore the original file content and confirm with `git diff --quiet -- <file>` (or a
       byte compare when there is no git).
 
-   Write the results to `.agents/aqa/<slug>/mutations.json`:
+   Write the results to `docs/qa/<slug>/mutations.json`:
    `[{"tc": "TC-001", "mutation": "status 202 -> 203", "result": "killed"}]`.
    Never mutate product code.
 5. **Fix survivors.** A survived mutation means a weak oracle. Make the assertion stronger,
@@ -66,8 +66,8 @@ Load the `workflow` skill of this plugin first.
 6. **Write the report.**
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" report .agents/aqa/<slug> \
-     --results .agents/aqa/<slug>/results.json --mutations .agents/aqa/<slug>/mutations.json
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" report docs/qa/<slug> \
+     --results docs/qa/<slug>/results.json --mutations docs/qa/<slug>/mutations.json
    ```
 
    This writes `report.md`. Add a short `## Findings` section at the end: product defects,
