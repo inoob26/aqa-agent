@@ -4,7 +4,7 @@ description: >-
   AQA engineer for test design and Playwright test automation. Use it to derive test cases
   from a task, an OpenSpec or Spec Kit spec, an ADR or an OpenAPI file, to write Gherkin
   features, Playwright API tests and Playwright UI tests from approved test cases, and to
-  verify them. It follows the aqa-agent artifacts in .agents/aqa/<slug>/ and stops at the
+  verify them. It follows the aqa-agent artifacts in docs/qa/<slug>/ and stops at the
   review gate.
 inheritProjectContext: true
 inheritSkills: false

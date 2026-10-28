@@ -4,7 +4,7 @@ A Claude Code plugin for test design and Playwright test automation.
 
 | Command | Input | Output |
 |---|---|---|
-| `/aqa-agent:test-cases` | task text, OpenSpec / Spec Kit spec, ADR, OpenAPI — one or many | `.agents/aqa/<slug>/` requirements, test cases, coverage, questions (`status: draft`) |
+| `/aqa-agent:test-cases` | task text, OpenSpec / Spec Kit spec, ADR, OpenAPI — one or many | `docs/qa/<slug>/` requirements, test cases, coverage, questions (`status: draft`) |
 | `/aqa-agent:bdd` | `<slug>` (approved) | `tests/features/<slug>/*.feature` for playwright-bdd |
 | `/aqa-agent:api-tests` | `<slug>` (approved) | Playwright API tests (TS): BDD steps or `*.spec.ts` |
 | `/aqa-agent:playwright-tests` | `<slug>` (approved) | Playwright UI tests (TS): BDD steps or `*.spec.ts` |
@@ -17,7 +17,7 @@ templates), the `scripts/aqa_lint.py` checker, and a Playwright MCP server in `.
 
 ```
 /aqa-agent:test-cases openspec/changes/add-password-reset api/openapi.yaml docs/adr/0007-rate-limits.md
-# review .agents/aqa/add-password-reset/, answer questions.md, set status: approved
+# review docs/qa/add-password-reset/, answer questions.md, set status: approved
 /aqa-agent:bdd add-password-reset                 # optional
 /aqa-agent:api-tests add-password-reset
 /aqa-agent:playwright-tests add-password-reset --url http://localhost:3000
@@ -28,11 +28,11 @@ Free text also works: `/aqa-agent:test-cases "users can reset the password by em
 
 ## Artifacts
 
-The commands keep the design files for one feature in `.agents/aqa/<slug>/` in the target
+The commands keep the design files for one feature in `docs/qa/<slug>/` in the target
 project. The slug comes from the OpenSpec change name, the Spec Kit feature folder, the ADR
 file name, or the task text. The `--slug <name>` argument sets it directly.
 
-### Why `.agents/aqa/`
+### Why `docs/qa/`
 
 - **One fixed place.** The `bdd`, `api-tests`, `playwright-tests` and `verify` commands read
   the test cases and check the review gate there.
@@ -82,11 +82,11 @@ The path is a convention in the skill text. It is not a setting. `aqa_lint.py` t
 folder as an argument, so the script needs no change. To use a different folder, for
 example `docs/qa/<slug>/`:
 
-1. Replace `.agents/aqa` in these files:
+1. Replace `docs/qa` in these files:
 
    ```bash
-   grep -rlF '.agents/aqa' skills agents README.md \
-     | xargs sed -i 's#\.agents/aqa#docs/qa#g'
+   grep -rlF 'docs/qa' skills agents README.md \
+     | xargs sed -i 's#\docs/qa#docs/qa#g'
    ```
 
 2. Move the existing artifact folders in the target projects to the new path.
@@ -143,11 +143,11 @@ Notes:
 ## Lint script
 
 ```bash
-python3 scripts/aqa_lint.py gate   .agents/aqa/<slug>
-python3 scripts/aqa_lint.py cases  .agents/aqa/<slug>
-python3 scripts/aqa_lint.py trace  .agents/aqa/<slug> tests/api --layer api
+python3 scripts/aqa_lint.py gate   docs/qa/<slug>
+python3 scripts/aqa_lint.py cases  docs/qa/<slug>
+python3 scripts/aqa_lint.py trace  docs/qa/<slug> tests/api --layer api
 python3 scripts/aqa_lint.py lint   tests/api tests/features
-python3 scripts/aqa_lint.py report .agents/aqa/<slug> --results .agents/aqa/<slug>/results.json
+python3 scripts/aqa_lint.py report docs/qa/<slug> --results docs/qa/<slug>/results.json
 ```
 
 Python 3.10 or later, standard library only. Exit code 0 = OK, 1 = check failed, 2 = usage error.

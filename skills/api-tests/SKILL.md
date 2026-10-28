@@ -2,14 +2,14 @@
 name: api-tests
 description: >-
   Write Playwright API tests in TypeScript (APIRequestContext) for the approved api-layer
-  test cases in .agents/aqa/<slug>/. Two modes: playwright-bdd step definitions when the
+  test cases in docs/qa/<slug>/. Two modes: playwright-bdd step definitions when the
   .feature files exist, else plain *.spec.ts files. Grounds every path, field and status
   code in the OpenAPI file or the router, reuses fixtures, tags every test with @TC and @REQ.
   Use when: "write the API tests," "automate the api cases," "implement TC-001..TC-010."
   Not for: deriving the cases — use test-cases first.
   Not for: browser tests — use playwright-tests.
   Related: workflow, test-cases, bdd, playwright-tests, verify.
-argument-hint: "<slug | .agents/aqa/<slug>> [TC ids] [--openapi <path>]"
+argument-hint: "<slug | docs/qa/<slug>> [TC ids] [--openapi <path>]"
 license: MIT
 metadata:
   author: Nikolay Morgunov
@@ -32,7 +32,7 @@ Load the `workflow` skill of this plugin first.
 1. **Check the gate.**
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate .agents/aqa/<slug>
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" gate docs/qa/<slug>
    ```
 
    A non-zero exit means: stop and ask for the review. Do not edit the status.
@@ -75,7 +75,7 @@ Load the `workflow` skill of this plugin first.
 
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" lint <test paths>
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace .agents/aqa/<slug> <test paths> --layer api
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/aqa_lint.py" trace docs/qa/<slug> <test paths> --layer api
    npx tsc --noEmit
    ```
 
@@ -92,5 +92,5 @@ Load the `workflow` skill of this plugin first.
 - Every selected `auto` api row has a test, or is `deferred` with a reason.
 - `aqa_lint.py lint`, `aqa_lint.py trace --layer api` and `tsc --noEmit` exit 0.
 - The new tests ran once; each failure has a classification in `coverage.md`.
-- No file outside the test tree, the scaffold files (if approved) and `.agents/aqa/<slug>/`
+- No file outside the test tree, the scaffold files (if approved) and `docs/qa/<slug>/`
   was modified.
